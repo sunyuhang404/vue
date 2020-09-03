@@ -29,6 +29,9 @@ export function initMixin (Vue: Class<Component>) {
     // a flag to avoid this being observed
     vm._isVue = true
     // merge options
+
+    // options: 初始化的时候传入的参数, 仅当是 Component 的时候执行
+    // optimize 阶段, 把 AST 转换成 render function 字符串
     if (options && options._isComponent) {
       // optimize internal component instantiation
       // since dynamic options merging is pretty slow, and none of the
@@ -49,13 +52,19 @@ export function initMixin (Vue: Class<Component>) {
     }
     // expose real self
     vm._self = vm
+    // 初始化生命周期相关的内容, 状态重置
     initLifecycle(vm)
+    // 初始化事件
     initEvents(vm)
     initRender(vm)
+    // beforeCreate声明周期
     callHook(vm, 'beforeCreate')
     initInjections(vm) // resolve injections before data/props
+    // 初始化 props methods data computed watch
     initState(vm)
+    // provide和inject初始化
     initProvide(vm) // resolve provide after data/props
+    // created 声明周期
     callHook(vm, 'created')
 
     /* istanbul ignore if */
@@ -66,6 +75,7 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     if (vm.$options.el) {
+      // 挂载前最后的操作
       vm.$mount(vm.$options.el)
     }
   }

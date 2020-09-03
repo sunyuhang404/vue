@@ -4212,6 +4212,7 @@ function mountComponent (
   hydrating
 ) {
   vm.$el = el;
+  // 是否有render, 没有的话就创建了一个空的虚拟DOM
   if (!vm.$options.render) {
     vm.$options.render = createEmptyVNode;
     if (process.env.NODE_ENV !== 'production') {
