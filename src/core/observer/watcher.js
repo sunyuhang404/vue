@@ -49,7 +49,9 @@ export default class Watcher {
     options?: ?Object,
     isRenderWatcher?: boolean
   ) {
+    // 观察者上保存当前的 vue 实例
     this.vm = vm
+    // 如果是渲染观察者, 设置 vue 实例的 _watcher 属性为自己
     if (isRenderWatcher) {
       vm._watcher = this
     }

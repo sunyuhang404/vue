@@ -58,16 +58,20 @@ export function parseHTML (html, options) {
   const canBeLeftOpenTag = options.canBeLeftOpenTag || no
   let index = 0
   let last, lastTag
+
+  // 如果 html 不为空, 就一直循环下去
+  // html 为空 代表解析完毕
   while (html) {
     last = html
-    // Make sure we're not in a plaintext content element like script/style
+    // 保证要解析的内容不是在 纯文本标签中 script,style,textarea
     if (!lastTag || !isPlainTextElement(lastTag)) {
       let textEnd = html.indexOf('<')
       if (textEnd === 0) {
-        // Comment:
+        // 通过正则表达式去匹配注释节点的开头
         if (comment.test(html)) {
+          // 匹配注释节点的结尾位置
           const commentEnd = html.indexOf('-->')
-
+          // 如果注释节点位置大于0, 就把这一段截取出去, 不需要解析
           if (commentEnd >= 0) {
             if (options.shouldKeepComment) {
               options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
@@ -77,7 +81,8 @@ export function parseHTML (html, options) {
           }
         }
 
-        // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        // 匹配到 conditionalComment, 和注释节点一样处理
+        // 类似这种 <![if !IE]>
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
@@ -87,14 +92,15 @@ export function parseHTML (html, options) {
           }
         }
 
-        // Doctype:
+        // 匹配到 都吃type, 和 注释节点一样处理
+        // /^<!DOCTYPE [^>]+>/i
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
           continue
         }
 
-        // End tag:
+        // 匹配到 endTag, 通注释节点一样处理
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
@@ -104,6 +110,7 @@ export function parseHTML (html, options) {
         }
 
         // Start tag:
+        // 除了上面四种, 其它的用下面的方式处理
         const startTagMatch = parseStartTag()
         if (startTagMatch) {
           handleStartTag(startTagMatch)
@@ -144,6 +151,7 @@ export function parseHTML (html, options) {
         options.chars(text, index - text.length, index)
       }
     } else {
+      // 解析的内容是在纯文本标签中的
       let endTagLength = 0
       const stackedTag = lastTag.toLowerCase()
       const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
@@ -184,8 +192,11 @@ export function parseHTML (html, options) {
     html = html.substring(n)
   }
 
+  // 开始解析节点
   function parseStartTag () {
+    // startTagOpen = '/^<((?:[a-zA-Z_][\w\-\.]*\:)?[a-zA-Z_][\w\-\.]*)/'
     const start = html.match(startTagOpen)
+    // 通过正则解析出节点名称
     if (start) {
       const match = {
         tagName: start[1],
@@ -194,6 +205,10 @@ export function parseHTML (html, options) {
       }
       advance(start[0].length)
       let end, attr
+      // 开始查找属性
+      // startTagClose = '/^\s*(\/?)>/'
+      // dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
+      // attribute = '/^\s*([^\s"'<>\/=]+)(?:\s*((?:=))\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/'
       while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
         attr.start = index
         advance(attr[0].length)
@@ -205,6 +220,16 @@ export function parseHTML (html, options) {
         advance(end[0].length)
         match.end = index
         return match
+        /**
+         * 到这里 parseStartTag结束, 返回 match
+         * 这时候 match 是这样的
+         * attrs: Array(1)
+         * end: 14,
+         * start: 0,
+         * tagName: 'div',
+         * unqrySlash: '',
+         * __proto__: Object
+         */
       }
     }
   }

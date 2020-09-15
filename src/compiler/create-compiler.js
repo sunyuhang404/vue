@@ -4,12 +4,13 @@ import { extend } from 'shared/util'
 import { detectErrors } from './error-detector'
 import { createCompileToFunctionFn } from './to-function'
 
+
+/**
+ * 创建编译器
+ */
 export function createCompilerCreator (baseCompile: Function): Function {
   return function createCompiler (baseOptions: CompilerOptions) {
-    function compile (
-      template: string,
-      options?: CompilerOptions
-    ): CompiledResult {
+    function compile (template: string, options?: CompilerOptions): CompiledResult {
       const finalOptions = Object.create(baseOptions)
       const errors = []
       const tips = []

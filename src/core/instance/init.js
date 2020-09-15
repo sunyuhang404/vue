@@ -75,7 +75,7 @@ export function initMixin (Vue: Class<Component>) {
     }
 
     if (vm.$options.el) {
-      // 挂载前最后的操作
+      // 准备挂载组件
       vm.$mount(vm.$options.el)
     }
   }

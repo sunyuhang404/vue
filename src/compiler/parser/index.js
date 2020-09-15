@@ -73,9 +73,7 @@ export function createASTElement (
   }
 }
 
-/**
- * Convert HTML string to AST.
- */
+ // 解析 template 模板, 把模板解析成 AST
 export function parse (
   template: string,
   options: CompilerOptions
@@ -213,10 +211,11 @@ export function parse (
     start (tag, attrs, unary, start, end) {
       // check namespace.
       // inherit parent ns if there is one
+      // 获取 namespace
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
-      // handle IE svg bug
       /* istanbul ignore if */
+      // 处理 IE svg 问题
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs)
       }
