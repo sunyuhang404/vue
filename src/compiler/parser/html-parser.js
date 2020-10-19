@@ -81,7 +81,7 @@ export function parseHTML (html, options) {
           }
         }
 
-        // 匹配到 conditionalComment, 和注释节点一样处理
+        // 匹配到条件注释节点
         // 类似这种 <![if !IE]>
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
@@ -92,15 +92,14 @@ export function parseHTML (html, options) {
           }
         }
 
-        // 匹配到 都吃type, 和 注释节点一样处理
-        // /^<!DOCTYPE [^>]+>/i
+        // 匹配到 Doctyp 节点
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
           continue
         }
 
-        // 匹配到 endTag, 通注释节点一样处理
+        // endTag 结束标签
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
@@ -109,10 +108,11 @@ export function parseHTML (html, options) {
           continue
         }
 
-        // Start tag:
-        // 除了上面四种, 其它的用下面的方式处理
+        // Start tag: 开始标签
+        // 如果有返回值, 说明标签解析成功
         const startTagMatch = parseStartTag()
         if (startTagMatch) {
+          // 处理开始标签的解析结果
           handleStartTag(startTagMatch)
           if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
             advance(1)
@@ -175,6 +175,7 @@ export function parseHTML (html, options) {
       parseEndTag(stackedTag, index - endTagLength, index)
     }
 
+    // 
     if (html === last) {
       options.chars && options.chars(html)
       if (process.env.NODE_ENV !== 'production' && !stack.length && options.warn) {
@@ -192,50 +193,84 @@ export function parseHTML (html, options) {
     html = html.substring(n)
   }
 
-  // 开始解析节点
+  // 解析开始标签
   function parseStartTag () {
-    // startTagOpen = '/^<((?:[a-zA-Z_][\w\-\.]*\:)?[a-zA-Z_][\w\-\.]*)/'
+    // 通过正则匹配
     const start = html.match(startTagOpen)
-    // 通过正则解析出节点名称
+    // 如果匹配成功, 是这样的 start = ['<div', 'div']
     if (start) {
+      // 定义 match 变量
       const match = {
-        tagName: start[1],
-        attrs: [],
-        start: index
+        tagName: start[1],    // 标签名称
+        attrs: [],            // 属性
+        start: index          // 当前字符串读入位置在整个 html 字符串中的相对位置
       }
+      // 在源字符串中截取已经编译完的字符, 当 html 字符串为 '' 的时候, 整个解析过程就结束了
       advance(start[0].length)
       let end, attr
       // 开始查找属性
-      // startTagClose = '/^\s*(\/?)>/'
-      // dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
-      // attribute = '/^\s*([^\s"'<>\/=]+)(?:\s*((?:=))\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/'
+      // 第一个条件: 没有匹配到标签的结束部分 并把结果保存到 end 中
+      // 第二个条件: 匹配到了属性
+      // 没有匹配到开始标签的结束部分, 并且匹配到了开始标签中的属性, 循环就开始执行, 直到遇到开始标签的结束部分为止
       while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
         attr.start = index
+        // 截取字符串, 长度为属性的长度
         advance(attr[0].length)
         attr.end = index
+        // 把匹配到的属性 push 到数组中
         match.attrs.push(attr)
       }
+      // 匹配到了开始标签的结束部分
+      /**
+       * <br />       end = ['/>', '/']
+       * <div></div>  end = ['>', undefined]
+       * 只要end[1]不是 undefined, 标签就应该是一个一元标签
+       */
       if (end) {
+        // 添加 unarySlash 属性, 值为 end[1]
         match.unarySlash = end[1]
+        // 重新截取字符串
         advance(end[0].length)
+        // 添加 end 属性, 值为 index, 不过由于先调用了 advance 函数, index 已经被更新了
         match.end = index
         return match
         /**
-         * 到这里 parseStartTag结束, 返回 match
-         * 这时候 match 是这样的
-         * attrs: Array(1)
-         * end: 14,
-         * start: 0,
-         * tagName: 'div',
-         * unqrySlash: '',
-         * __proto__: Object
+         * <div id="box" v-if="watings"></div>
+         * match = {
+         *  tagName: 'div',
+         *  attrs: [
+         *    [
+         *      'id="box"',
+         *      'id',
+         *      '=',
+         *      'box',
+         *      undefined,
+         *      undefined
+         *    ],
+         *    [
+         *      ' v-if="watings"',
+         *      'v-if',
+         *      '=',
+         *      'watings',
+         *      undefined,
+         *      undefined
+         *    ]
+         *  ],
+         *  start: index,
+         *  unarySlash: undefined,
+         *  end: index
+         * }
          */
       }
     }
   }
 
+  // 处理开始标签的解析结果
   function handleStartTag (match) {
+    // 标签名称
     const tagName = match.tagName
+    
+    // 是否为一元标签
     const unarySlash = match.unarySlash
 
     if (expectHTML) {
@@ -247,11 +282,15 @@ export function parseHTML (html, options) {
       }
     }
 
+    // 是否一元标签
     const unary = isUnaryTag(tagName) || !!unarySlash
 
     const l = match.attrs.length
+
+    // 新建 attrs 属性, 遍历 match.attrs 得到 attrs = [{ name: 'id', value: 'app' }] 这种结构
     const attrs = new Array(l)
     for (let i = 0; i < l; i++) {
+
       const args = match.attrs[i]
       const value = args[3] || args[4] || args[5] || ''
       const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
@@ -267,11 +306,14 @@ export function parseHTML (html, options) {
       }
     }
 
+    // 如果不是一元标签
     if (!unary) {
+      // 像 stach 数组中 push 标签
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
       lastTag = tagName
     }
 
+    // 重要, 对特殊的属性进行处理, 比如 v-text='message'
     if (options.start) {
       options.start(tagName, attrs, unary, match.start, match.end)
     }

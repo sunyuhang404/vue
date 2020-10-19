@@ -167,7 +167,10 @@ function genDefaultModel (
     code = `if($event.target.composing)return;${code}`
   }
 
+  // 给标签添加 prop, 相当于动态绑定 value
   addProp(el, 'value', `(${value})`)
+
+  // 给标签添加事件, 在事件触发的时候动态修改 model的值
   addHandler(el, event, code, null, true)
   if (trim || number) {
     addHandler(el, 'blur', '$forceUpdate()')

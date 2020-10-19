@@ -52,6 +52,7 @@ export function generate (
   }
 }
 
+// 根据 AST 节点属性 执行不同的代码生成函数
 export function genElement (el: ASTElement, state: CodegenState): string {
   if (el.parent) {
     el.pre = el.pre || el.parent.pre
@@ -306,6 +307,7 @@ export function genData (el: ASTElement, state: CodegenState): string {
   return data
 }
 
+// 手机元素上的自定义指令
 function genDirectives (el: ASTElement, state: CodegenState): string | void {
   const dirs = el.directives
   if (!dirs) return

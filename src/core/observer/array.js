@@ -18,11 +18,9 @@ const methodsToPatch = [
   'reverse'
 ]
 
-/**
- * Intercept mutating methods and emit events
- */
+// 重写数组方法
 methodsToPatch.forEach(function (method) {
-  // cache original method
+  // 先把原生的方法缓存下来
   const original = arrayProto[method]
   def(arrayMethods, method, function mutator (...args) {
     const result = original.apply(this, args)

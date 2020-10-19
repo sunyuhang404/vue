@@ -105,6 +105,7 @@ export default class Watcher {
     let value
     const vm = this.vm
     try {
+      // 获取被依赖的数据, 为了触发 getter, 然后收集依赖
       value = this.getter.call(vm, vm)
     } catch (e) {
       if (this.user) {
