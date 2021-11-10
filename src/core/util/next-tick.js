@@ -10,6 +10,7 @@ export let isUsingMicroTask = false
 const callbacks = []
 let pending = false
 
+// 在异步事件里挨个执行 nextTick 的回调函数
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
@@ -18,7 +19,7 @@ function flushCallbacks () {
     copies[i]()
   }
 }
-
+// 
 // Here we have async deferring wrappers using microtasks.
 // In 2.5 we used (macro) tasks (in combination with microtasks).
 // However, it has subtle problems when state is changed right before repaint
@@ -39,6 +40,12 @@ let timerFunc
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
+
+// nextTick 的异步任务降级策略
+// 首选 Promise
+// MutationObserver
+// setImmediate
+// setTimeout
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve()
   timerFunc = () => {
@@ -84,6 +91,8 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   }
 }
 
+// 执行 nextTick, 是把回调函数添加到 callbacks 数组中维护起来
+// 然后执行 timerFunc 根据使用环境去选择执行回调函数的异步方案
 export function nextTick (cb?: Function, ctx?: Object) {
   let _resolve
   callbacks.push(() => {
